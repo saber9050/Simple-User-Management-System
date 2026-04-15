@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>后台管理系统</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://unpkg.com/feather-icons"></script>
+ <style>
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+ </style>
+</head>
+<body class="bg-gray-100">
+<!-- 侧边栏 -->
+<aside class="bg-gray-800 text-white w-64 fixed h-full p-4 overflow-y-auto">
+ <div class="mb-8">
+  <h1 class="text-xl font-bold">后台管理系统</h1>
+  <p class="text-gray-400 text-sm mt-1">v2.1.0</p>
+ </div>
+ <nav>
+  <ul class="space-y-2">
+   <li><a href="/index" class="flex items-center p-2 hover:bg-gray-700 rounded"><i data-feather="home" class="w-4 h-4 mr-2"></i> 首页概览</a></li>
+   <li><a href="/users" class="flex items-center p-2 hover:bg-gray-700 rounded"><i data-feather="users" class="w-4 h-4 mr-2"></i> 用户管理</a></li>
+  </ul>
+ </nav>
+</aside>
+
+<!-- 顶部导航 -->
+<header class="ml-64 fixed w-[calc(100%-16rem)] bg-white shadow-sm z-10">
+ <div class="flex justify-between items-center px-8 py-4">
+  <h2 class="text-xl font-bold" id="pageTitle">数据概览</h2>
+  <div class="flex items-center gap-4">
+   <button class="p-2 hover:bg-gray-100 rounded-full"><i data-feather="bell"></i></button>
+   <div class="flex items-center gap-2">
+    <span id="userName" class="text-gray-700 font-medium"></span> <!-- ? -->
+    <img id="userAvatar" src="" class="w-8 h-8 rounded-full">
+    <button onclick="logout()" class="text-red-600 hover:text-red-700 flex items-center gap-1">
+     <i data-feather="log-out" class="w-5 h-5"></i>
+     <span class="hidden sm:inline">退出系统</span>
+    </button>
+   </div>
+  </div>
+ </div>
+</header>
+
+<main class="ml-64 pt-20 p-8">
+ <div class="space-y-6">
+  <!-- 三栏统计卡片 -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+   <div class="bg-white p-6 rounded-xl shadow">
+    <div class="flex justify-between items-center">
+     <div><p class="text-gray-500 text-sm">注册用户</p><p class="text-3xl font-bold mt-2" id="totalUsers">0</p></div>
+     <div class="bg-blue-100 p-3 rounded-full"><i data-feather="users" class="w-6 h-6 text-blue-600"></i></div>
+    </div>
+   </div>
+   <div class="bg-white p-6 rounded-xl shadow">
+    <div class="flex justify-between items-center">
+     <div><p class="text-gray-500 text-sm">普通用户</p><p class="text-3xl font-bold mt-2" id="normalUsers">0</p></div>
+     <div class="bg-green-100 p-3 rounded-full"><i data-feather="user" class="w-6 h-6 text-green-600"></i></div>
+    </div>
+   </div>
+   <div class="bg-white p-6 rounded-xl shadow">
+    <div class="flex justify-between items-center">
+     <div><p class="text-gray-500 text-sm">管理员</p><p class="text-3xl font-bold mt-2" id="adminUsers">0</p></div>
+     <div class="bg-purple-100 p-3 rounded-full"><i data-feather="shield" class="w-6 h-6 text-purple-600"></i></div>
+    </div>
+   </div>
+  </div>
+  <!-- 欢迎语卡片 -->
+  <div class="bg-white p-6 rounded-xl shadow">
+   <h3 class="text-lg font-semibold mb-4">欢迎使用后台管理系统</h3>
+   <p id="welcomeMsg" class="text-gray-600">加载中...</p>
+  </div>
+ </div>
+</main>
+
+<script>
+
+ feather.replace();
+
+ async function fetchData() {
+  try {
+   const resp = await fetch('/api/users');
+   if (!resp.ok) {
+    if (resp.status === 401) window.location.href = '/login';
+    return;
+   }
+   const data = await resp.json();
+   const users = data.users;
+   const total = users.length;
+   const normalCount = users.filter(u => u.Role === 'user').length;
+   const adminCount = users.filter(u => u.Role === 'admin').length;
+   document.getElementById('totalUsers').innerText = total;
+   document.getElementById('normalUsers').innerText = normalCount;
+   document.getElementById('adminUsers').innerText = adminCount;
+
+   const currentUser = users.find(u => u.ID === data.currentUserID);
+   if (currentUser) {
+    document.getElementById('userName').innerText = currentUser.Name;
+    if (currentUser.Avatar) {
+     document.getElementById('userAvatar').src = currentUser.Avatar;
+    } else {
+     document.getElementById('userAvatar').src = '/uploads/default.png';
+    }
+   } else {
+    document.getElementById('userName').innerText = '用户';
+   }
+
+   if (currentUser) {
+    document.getElementById('welcomeMsg').innerHTML = `欢迎回来，${currentUser.Name}！`;
+   } else {
+    document.getElementById('welcomeMsg').innerHTML = `欢迎回来，用户！`;
+   }
+  } catch (err) {
+   console.error(err);
+  }
+ }
+
+ function logout() {
+  if (confirm('确定要退出系统吗？')) {
+   fetch('/api/logout', { method: 'POST' }).then(() => {
+    window.location.href = '/login';
+   });
+  }
+ }
+
+ fetchData();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>登录 - 后台管理系统</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+ <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">登录</h1>
+ <form id="loginForm" autocomplete="off">
+  <div class="mb-4">
+   <label for="account" class="block text-sm font-medium text-gray-700">账号</label>
+   <input type="text" id="account" name="account" placeholder="请输入账号"
+          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          required autocomplete="off">
+  </div>
+  <div class="mb-6">
+   <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+   <input type="password" id="password" name="password" placeholder="请输入密码"
+          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          required>
+  </div>
+  <div id="errorMsg" class="text-red-500 text-sm mb-2 hidden"></div>
+  <button type="submit"
+          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+   登录
+  </button>
+  <div class="mt-4 text-center">
+   <a href="/register" class="text-sm text-blue-600 hover:text-blue-500">没有账号？立即注册</a>
+  </div>
+ </form>
+</div>
+<script>
+ const loginForm = document.getElementById('loginForm');
+ const errorMsgDiv = document.getElementById('errorMsg');
+
+ loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorMsgDiv.classList.add('hidden');
+
+  const formData = new FormData(loginForm);
+
+  try {
+   const response = await fetch('/api/login', {
+    method: 'POST',
+    body: formData
+   });
+   const result = await response.json();
+   if (result.success) {
+    // 登录成功，跳转到首页
+    window.location.href = '/index';
+   } else {
+    errorMsgDiv.textContent = result.message || '登录失败';
+    errorMsgDiv.classList.remove('hidden');
+   }
+  } catch (err) {
+   errorMsgDiv.textContent = '网络错误，请稍后重试';
+   errorMsgDiv.classList.remove('hidden');
+  }
+ });
+</script>
+</body>
+</html>

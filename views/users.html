@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>用户管理 - 后台管理系统</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://unpkg.com/feather-icons"></script>
+ <style>
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+ </style>
+</head>
+<body class="bg-gray-100">
+<aside class="bg-gray-800 text-white w-64 fixed h-full p-4 overflow-y-auto">
+ <div class="mb-8"><h1 class="text-xl font-bold">后台管理系统</h1><p class="text-gray-400 text-sm mt-1">v2.1.0</p></div>
+ <nav><ul class="space-y-2">
+  <li><a href="/index" class="flex items-center p-2 hover:bg-gray-700 rounded"><i data-feather="home" class="w-4 h-4 mr-2"></i> 首页概览</a></li>
+  <li><a href="/users" class="flex items-center p-2 hover:bg-gray-700 rounded"><i data-feather="users" class="w-4 h-4 mr-2"></i> 用户管理</a></li>
+ </ul></nav>
+</aside>
+
+<header class="ml-64 fixed w-[calc(100%-16rem)] bg-white shadow-sm z-10">
+ <div class="flex justify-between items-center px-8 py-4">
+  <h2 class="text-xl font-bold" id="pageTitle">用户管理</h2>
+  <div class="flex items-center gap-4">
+   <button class="p-2 hover:bg-gray-100 rounded-full"><i data-feather="bell"></i></button>
+   <div class="flex items-center gap-2">
+    <span id="userName" class="text-gray-700 font-medium"></span> <!-- ? -->
+    <img id="userAvatar" src="" class="w-8 h-8 rounded-full">
+    <button onclick="logout()" class="text-red-600 hover:text-red-700 flex items-center gap-1">
+     <i data-feather="log-out" class="w-5 h-5"></i><span class="hidden sm:inline">退出系统</span>
+    </button>
+   </div>
+  </div>
+ </div>
+</header>
+
+<main class="ml-64 pt-20 p-8">
+ <div class="space-y-6">
+  <div class="flex justify-between items-center">
+   <div class="flex gap-4">
+    <input type="text" id="searchInput" placeholder="搜索用户名/账号" class="px-4 py-2 border rounded-lg w-64">
+    <select id="roleFilter" class="px-4 py-2 border rounded-lg">
+     <option value="">全部角色</option>
+     <option value="admin">管理员</option>
+     <option value="user">普通用户</option>
+    </select>
+   </div>
+   <button id="newUserBtn" onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 hidden">
+    <i data-feather="plus"></i> 新建用户
+   </button>
+  </div>
+
+  <div class="bg-white rounded-xl shadow overflow-x-auto">
+   <table class="min-w-full">
+    <thead class="bg-gray-50">
+    <tr>
+     <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">头像</th>
+     <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">用户名</th>
+     <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">账号</th>
+     <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">角色</th>
+     <th class="px-6 py-3 text-left text-sm font-medium text-gray-500">操作</th>
+    </tr>
+    </thead>
+    <tbody id="userTableBody" class="divide-y divide-gray-200"></tbody>
+   </table>
+  </div>
+ </div>
+
+ <!-- 编辑/新建用户模态框 -->
+ <div id="userModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-20">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md">
+   <h3 id="modalTitle" class="text-xl font-bold mb-4">编辑用户</h3>
+   <form id="userForm" class="space-y-4">
+    <input type="hidden" id="editUserId">
+    <div><label class="block text-sm font-medium mb-1">用户名</label><input type="text" id="editName" class="w-full px-4 py-2 border rounded-lg"></div>
+    <div><label class="block text-sm font-medium mb-1">账号</label><input type="text" id="editAccount" class="w-full px-4 py-2 border rounded-lg"></div>
+    <div><label class="block text-sm font-medium mb-1">密码</label><input type="password" id="editPassword" class="w-full px-4 py-2 border rounded-lg"></div>
+    <div><label class="block text-sm font-medium mb-1">角色</label><select id="editRole" class="w-full px-4 py-2 border rounded-lg"><option value="user">普通用户</option><option value="admin">管理员</option></select></div>
+    <div class="flex justify-end gap-2">
+     <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">保存</button>
+    </div>
+   </form>
+  </div>
+ </div>
+
+ <!-- 头像上传模态框
+ 注意：为什么按到按钮右边的“未选择文件“也可以选头像？
+ 原因：这是浏览器原生控件<input type="file">的默认行为，其可点击区域通常包括按钮和旁边的提示文本区域，是浏览器为了让用户更容易点击到文件选择功能而设计的。 -->
+ <div id="avatarModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-20">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md">
+   <h3 class="text-xl font-bold mb-4">修改头像</h3>
+   <form id="avatarForm" enctype="multipart/form-data">
+    <input type="hidden" id="avatarUserId">
+    <div class="mb-4"><label class="block text-sm font-medium mb-1">选择图片</label><input type="file" id="avatarFile" accept="image/*" class="w-full"></div>
+    <div class="flex justify-end gap-2">
+     <button type="button" onclick="closeAvatarModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">上传</button>
+    </div>
+   </form>
+  </div>
+ </div>
+</main>
+
+<script>
+
+ async function apiFetch(url, options = {}) {
+  try {
+   const res = await fetch(url, options);
+   // 401 未认证 → 跳转登录
+   if (res.status === 401) {
+    alert('登录已过期，请重新登录');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+   }
+   // 403 无权限 → 提示错误
+   if (res.status === 403) {
+    alert('无权限执行此操作');
+    throw new Error('Forbidden');
+   }
+   return res;
+  } catch (err) {
+   // 如果是因为 401/403 抛出错误，直接向上传递
+   // 其他网络错误也向上传递，由调用方处理
+   throw err;
+  }
+ }
+
+ let currentUserRole = '';
+ let currentUserID = 0;
+ let allUsers = [];
+
+ feather.replace();
+
+ async function fetchUsers() {
+  try {
+   const res = await apiFetch('/api/users');
+   const data = await res.json();
+   currentUserID = data.currentUserID;
+   currentUserRole = data.currentUserRole;
+   allUsers = data.users;
+   // 显示当前用户头像
+   const cur = allUsers.find(u => u.ID === currentUserID);
+   if (cur) {
+    document.getElementById('userName').innerText = cur.Name;
+    if (cur.Avatar) document.getElementById('userAvatar').src = cur.Avatar;
+    else document.getElementById('userAvatar').src = '/uploads/default.png';
+   } else {
+    document.getElementById('userName').innerText = '用户';
+   }
+
+   // 控制新建按钮显示
+   if (currentUserRole === 'admin') document.getElementById('newUserBtn').classList.remove('hidden');
+   else document.getElementById('newUserBtn').classList.add('hidden');
+   renderTable();
+  } catch (err) { console.error(err); }
+ }
+
+ function renderTable() {
+  const searchVal = document.getElementById('searchInput').value.toLowerCase();
+  const roleFilter = document.getElementById('roleFilter').value;
+  let filtered = allUsers.filter(u => (u.Name.toLowerCase().includes(searchVal) || u.Account.toLowerCase().includes(searchVal)) &&
+          (roleFilter === '' || u.Role === roleFilter));
+  const tbody = document.getElementById('userTableBody');
+  tbody.innerHTML = '';
+  filtered.forEach(user => {
+   const tr = document.createElement('tr');
+   tr.className = 'hover:bg-gray-50';
+
+   // 头像列
+   const tdAvatar = document.createElement('td'); tdAvatar.className = 'px-6 py-4';
+   const img = document.createElement('img'); img.src = user.Avatar || '/uploads/default.png'; img.className = 'w-8 h-8 rounded-full';
+   tdAvatar.appendChild(img);
+
+   // 用户名
+   const tdName = document.createElement('td'); tdName.className = 'px-6 py-4 font-medium'; tdName.innerText = user.Name;
+   // 账号
+   const tdAccount = document.createElement('td'); tdAccount.className = 'px-6 py-4'; tdAccount.innerText = user.Account;
+   // 角色
+   const tdRole = document.createElement('td'); tdRole.className = 'px-6 py-4';
+   const roleSpan = document.createElement('span'); roleSpan.className = `px-2 py-1 rounded-full text-sm ${user.Role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`;
+   roleSpan.innerText = user.Role === 'admin' ? '管理员' : '普通用户';
+   tdRole.appendChild(roleSpan);
+   // 操作列
+   const tdActions = document.createElement('td'); tdActions.className = 'px-6 py-4';
+   const btnGroup = document.createElement('div'); btnGroup.className = 'flex gap-2';
+
+   // 修改头像按钮：管理员可改任何人，普通用户只能改自己
+   if (currentUserRole === 'admin' || user.ID === currentUserID) {
+    const avatarBtn = document.createElement('button'); avatarBtn.className = 'p-2 hover:bg-gray-100 rounded';
+    avatarBtn.innerHTML = '<i data-feather="camera" class="w-4 h-4 text-green-600"></i>';
+    avatarBtn.onclick = () => openAvatarModal(user.ID);
+    btnGroup.appendChild(avatarBtn);
+   }
+
+   // 编辑和删除仅管理员可见
+   if (currentUserRole === 'admin') {
+    const editBtn = document.createElement('button'); editBtn.className = 'p-2 hover:bg-gray-100 rounded';
+    editBtn.innerHTML = '<i data-feather="edit" class="w-4 h-4 text-blue-600"></i>';
+    editBtn.onclick = () => openUserModal(user);
+    btnGroup.appendChild(editBtn);
+
+    const delBtn = document.createElement('button'); delBtn.className = 'p-2 hover:bg-gray-100 rounded';
+    delBtn.innerHTML = '<i data-feather="trash-2" class="w-4 h-4 text-red-600"></i>';
+    delBtn.onclick = () => deleteUser(user.ID);
+    btnGroup.appendChild(delBtn);
+   }
+
+   tdActions.appendChild(btnGroup);
+   tr.appendChild(tdAvatar); tr.appendChild(tdName); tr.appendChild(tdAccount); tr.appendChild(tdRole); tr.appendChild(tdActions);
+   tbody.appendChild(tr);
+  });
+  feather.replace();
+ }
+
+ // 打开编辑/新建模态框
+ function openUserModal(user = null) {
+  document.getElementById('modalTitle').innerText = user ? '编辑用户' : '新建用户';
+  document.getElementById('editUserId').value = user ? user.ID : '';
+  document.getElementById('editName').value = user ? user.Name : '';
+  document.getElementById('editAccount').value = user ? user.Account : '';
+  document.getElementById('editPassword').value = '';
+  document.getElementById('editRole').value = user ? user.Role : 'user';
+  document.getElementById('userModal').classList.remove('hidden');
+ }
+
+ function closeUserModal() { document.getElementById('userModal').classList.add('hidden'); }
+
+ document.getElementById('userForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('editUserId').value;
+  const name = document.getElementById('editName').value;
+  const account = document.getElementById('editAccount').value;
+  const password = document.getElementById('editPassword').value;
+  const role = document.getElementById('editRole').value;
+  const formData = new FormData();
+  if (id) formData.append('id', id);
+  formData.append('name', name);
+  formData.append('account', account);
+  formData.append('role', role);
+  if (password) formData.append('password', password);
+
+  // 根据是否有id决定调用哪个接口
+  const url = id ? '/api/user/update' : '/api/user/create';
+
+  try {
+   const res = await apiFetch(url, { method: 'POST', body: formData });
+   const result = await res.json();
+   if (result.success) {
+    alert(id ? '保存成功' : '创建成功');
+    closeUserModal();
+    fetchUsers();
+   } else {
+    alert(result.message || '操作失败');
+   }
+  } catch (err) {
+   if (err.message !== 'Unauthorized' && err.message !== 'Forbidden') {
+    alert('网络错误');
+   }
+  }
+ });
+
+ async function deleteUser(id) {
+  if (!confirm('确定删除该用户吗？')) return;
+  const formData = new FormData(); formData.append('id', id);
+  try {
+   const res = await apiFetch('/api/user/delete', { method: 'POST', body: formData });
+   const result = await res.json();
+   if (result.success) { alert('删除成功'); fetchUsers(); }
+   else alert(result.message);
+  } catch (err) {
+   if (err.message !== 'Unauthorized' && err.message !== 'Forbidden') {
+    alert('网络错误');
+   }
+  }
+ }
+
+ // 头像上传相关
+ function openAvatarModal(userId) {
+  document.getElementById('avatarUserId').value = userId;
+  document.getElementById('avatarModal').classList.remove('hidden');
+ }
+ function closeAvatarModal() { document.getElementById('avatarModal').classList.add('hidden'); }
+ document.getElementById('avatarForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const userId = document.getElementById('avatarUserId').value;
+  const fileInput = document.getElementById('avatarFile');
+  if (fileInput.files.length === 0) { alert('请选择图片'); return; }
+  const formData = new FormData();
+  formData.append('avatar', fileInput.files[0]);
+  if (userId && currentUserRole === 'admin') formData.append('user_id', userId);
+  try {
+   const res = await apiFetch('/api/avatar/upload', { method: 'POST', body: formData });
+   const result = await res.json();
+   if (result.success) { alert('头像更新成功'); closeAvatarModal(); fetchUsers(); }
+   else alert(result.message);
+  } catch (err) {
+   if (err.message !== 'Unauthorized' && err.message !== 'Forbidden') {
+    alert('上传失败');
+   }
+  }
+ });
+
+ document.getElementById('searchInput').addEventListener('input', renderTable);
+ document.getElementById('roleFilter').addEventListener('change', renderTable);
+
+ function logout() { if (confirm('确定退出？')) { fetch('/api/logout', { method: 'POST' }).then(() => window.location.href = '/login'); } }
+
+ fetchUsers();
+</script>
+</body>
+</html>
